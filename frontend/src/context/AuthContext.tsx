@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@/entities/user.entity";
 import { AuthService } from "@/services/auth.service";
+import { SESSION_EXPIRED_EVENT } from "@/services/token.storage";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
@@ -31,6 +32,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setLoading(false);
   }, []);
+
+  // El ApiClient emite este evento cuando el refresh token expiró o fue revocado
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+      setToken(null);
+      router.push("/login?reason=expired");
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, [router]);
 
   const login = async (username: string, password: string) => {
     const session = await AuthService.login({ username, password });

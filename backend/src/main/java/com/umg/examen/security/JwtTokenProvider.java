@@ -63,6 +63,10 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    public long getJwtExpirationMs() {
+        return jwtExpirationMs;
+    }
+
     public String getUsernameFromJwt(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())

@@ -2,6 +2,7 @@ import { AuthResponseDto, UserResponseDto } from "@/dtos/auth.dto";
 import { AuthSession, User } from "@/entities/user.entity";
 import { AuthMapper } from "@/mappers/auth.mapper";
 import { ApiClient } from "./api.client";
+import { TokenStorage } from "./token.storage";
 
 export class AuthService {
   static async login(credentials: { username: string; password: string }): Promise<AuthSession> {
@@ -9,10 +10,8 @@ export class AuthService {
     const response = await ApiClient.post<AuthResponseDto>("/api/auth/login", dto);
     const session = AuthMapper.toSession(response.data);
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("token", session.token);
-      localStorage.setItem("user", JSON.stringify(session.user));
-    }
+    TokenStorage.saveTokens(session.token, session.refreshToken);
+    TokenStorage.saveUser(session.user);
 
     return session;
   }
@@ -23,24 +22,21 @@ export class AuthService {
   }
 
   static logout(): void {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    }
+    TokenStorage.clear();
   }
 
   static getStoredSession(): AuthSession | null {
-    if (typeof window === "undefined") return null;
+    const token = TokenStorage.getAccessToken();
+    const refreshToken = TokenStorage.getRefreshToken();
+    const userStr = TokenStorage.getUser();
 
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
-
-    if (!token || !userStr) return null;
+    if (!token || !refreshToken || !userStr) return null;
 
     try {
       const user = JSON.parse(userStr) as User;
       return {
         token,
+        refreshToken,
         user,
         isAuthenticated: true,
         isAdmin: user.roles?.includes("ROLE_ADMIN") || false,

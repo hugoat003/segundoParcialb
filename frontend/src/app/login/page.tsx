@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Loader2,
   ChevronLeft,
+  Clock,
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const { login } = useAuth();
   const router = useRouter();
@@ -28,7 +30,9 @@ export default function LoginPage() {
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("reason");
     if (reason === "expired") {
-      setError("Tu sesión expiró. Inicia sesión nuevamente.");
+      setNotice("Tu sesión expiró. Inicia sesión nuevamente.");
+    } else if (reason === "inactivity") {
+      setNotice("Sesión cerrada por inactividad");
     }
   }, []);
 
@@ -42,6 +46,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
+      setNotice(null);
       await login(username, password);
       router.push("/dashboard/products");
     } catch (err: any) {
@@ -111,6 +116,14 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+
+        {/* Session Notice (cierre por inactividad / expiración) */}
+        {notice && !error && (
+          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2">
+            <Clock className="w-4 h-4 shrink-0" />
+            <span>{notice}</span>
+          </div>
+        )}
 
         {/* Error Notification */}
         {error && (

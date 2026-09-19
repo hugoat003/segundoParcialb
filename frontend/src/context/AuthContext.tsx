@@ -2,9 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@/entities/user.entity";
+import { LogoutReason } from "@/dtos/auth.dto";
 import { AuthService } from "@/services/auth.service";
 import { SESSION_EXPIRED_EVENT } from "@/services/token.storage";
-import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;
@@ -13,7 +13,7 @@ interface AuthContextType {
   isAdmin: boolean;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: (reason?: LogoutReason) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,7 +22,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const session = AuthService.getStoredSession();
@@ -36,13 +35,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // El ApiClient emite este evento cuando el refresh token expiró o fue revocado
   useEffect(() => {
     const handleSessionExpired = () => {
-      setUser(null);
-      setToken(null);
-      router.push("/login?reason=expired");
+      window.location.replace("/login?reason=expired");
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
-  }, [router]);
+  }, []);
 
   const login = async (username: string, password: string) => {
     const session = await AuthService.login({ username, password });
@@ -50,11 +47,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(session.token);
   };
 
-  const logout = () => {
-    AuthService.logout();
-    setUser(null);
-    setToken(null);
-    router.push("/");
+  const logout = async (reason: LogoutReason = "MANUAL") => {
+    await AuthService.logout(reason);
+    // Navegación completa: descarta el estado en memoria y evita que la redirección
+    // del layout privado sobrescriba el motivo del cierre
+    window.location.replace(reason === "INACTIVITY" ? "/login?reason=inactivity" : "/");
   };
 
   const isAdmin = !!(user?.roles && user.roles.includes("ROLE_ADMIN"));

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Lista negra de access tokens invalidados al cerrar sesión (también sirve como registro de cierres) -->
+    <changeSet id="006-1-create-revoked-access-tokens-table" author="hugo-del-valle">
+        <createTable tableName="revoked_access_tokens">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_revoked_access_tokens"/>
+            </column>
+            <column name="jti" type="VARCHAR(36)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_revoked_access_tokens_jti"/>
+            </column>
+            <column name="username" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reason" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revoked_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+
+    <!-- Registro de cuándo y por qué se revocó cada refresh token -->
+    <changeSet id="006-2-add-revocation-info-to-refresh-tokens" author="hugo-del-valle">
+        <addColumn tableName="refresh_tokens">
+            <column name="revoked_at" type="TIMESTAMP"/>
+            <column name="revoked_reason" type="VARCHAR(20)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

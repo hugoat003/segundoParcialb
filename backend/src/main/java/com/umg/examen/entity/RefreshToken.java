@@ -25,6 +25,12 @@ public class RefreshToken {
     @Column(nullable = false)
     private Boolean revoked = false;
 
+    @Column(name = "revoked_at")
+    private LocalDateTime revokedAt;
+
+    @Column(name = "revoked_reason", length = 20)
+    private String revokedReason;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -38,6 +44,13 @@ public class RefreshToken {
 
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiresAt);
+    }
+
+    /** Revoca el token registrando el motivo: ROTATED, EXPIRED, MANUAL o INACTIVITY. */
+    public void revoke(String reason) {
+        this.revoked = true;
+        this.revokedAt = LocalDateTime.now();
+        this.revokedReason = reason;
     }
 
     public Long getId() {
@@ -78,6 +91,22 @@ public class RefreshToken {
 
     public void setRevoked(Boolean revoked) {
         this.revoked = revoked;
+    }
+
+    public LocalDateTime getRevokedAt() {
+        return revokedAt;
+    }
+
+    public void setRevokedAt(LocalDateTime revokedAt) {
+        this.revokedAt = revokedAt;
+    }
+
+    public String getRevokedReason() {
+        return revokedReason;
+    }
+
+    public void setRevokedReason(String revokedReason) {
+        this.revokedReason = revokedReason;
     }
 
     public LocalDateTime getCreatedAt() {

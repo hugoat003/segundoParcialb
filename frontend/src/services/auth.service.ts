@@ -1,4 +1,4 @@
-import { AuthResponseDto, UserResponseDto } from "@/dtos/auth.dto";
+import { AuthResponseDto, LogoutReason, LogoutRequestDto, UserResponseDto } from "@/dtos/auth.dto";
 import { AuthSession, User } from "@/entities/user.entity";
 import { AuthMapper } from "@/mappers/auth.mapper";
 import { ApiClient } from "./api.client";
@@ -21,8 +21,22 @@ export class AuthService {
     return AuthMapper.toUserFromResponse(response.data);
   }
 
-  static logout(): void {
-    TokenStorage.clear();
+  /**
+   * Notifica al backend el cierre de sesión (revoca refresh y access token) y limpia el
+   * almacenamiento local. La limpieza local ocurre aunque el backend no responda.
+   */
+  static async logout(reason: LogoutReason = "MANUAL"): Promise<void> {
+    const dto: LogoutRequestDto = { refreshToken: TokenStorage.getRefreshToken(), reason };
+    try {
+      if (dto.refreshToken || TokenStorage.getAccessToken()) {
+        await ApiClient.post<void>("/api/auth/logout", dto);
+        console.info(`[AUTH] Sesión cerrada en el backend (motivo: ${reason})`);
+      }
+    } catch (error: any) {
+      console.warn("[AUTH] No se pudo notificar el cierre de sesión al backend:", error.message);
+    } finally {
+      TokenStorage.clear();
+    }
   }
 
   static getStoredSession(): AuthSession | null {

@@ -1,5 +1,6 @@
 package com.umg.examen.service.impl;
 
+import com.umg.examen.entity.LogoutReason;
 import com.umg.examen.entity.RefreshToken;
 import com.umg.examen.entity.User;
 import com.umg.examen.exception.InvalidRefreshTokenException;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -46,11 +48,19 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
             throw new InvalidRefreshTokenException("Refresh token revocado");
         }
         if (current.isExpired()) {
-            current.setRevoked(true);
+            current.revoke("EXPIRED");
             throw new InvalidRefreshTokenException("Refresh token expirado, inicie sesión nuevamente");
         }
 
-        current.setRevoked(true);
+        current.revoke("ROTATED");
         return create(current.getUser());
+    }
+
+    @Override
+    @Transactional
+    public Optional<RefreshToken> revoke(String token, LogoutReason reason) {
+        Optional<RefreshToken> refreshToken = refreshTokenRepository.findByToken(token);
+        refreshToken.filter(rt -> !rt.getRevoked()).ifPresent(rt -> rt.revoke(reason.name()));
+        return refreshToken;
     }
 }

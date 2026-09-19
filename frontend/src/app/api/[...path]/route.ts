@@ -18,13 +18,13 @@ async function proxy(request: NextRequest, { params }: { params: { path: string[
     if (value) headers.set(name, value);
   }
 
-  const hasBody = !["GET", "HEAD"].includes(request.method);
+  const requestBody = ["GET", "HEAD"].includes(request.method) ? "" : await request.text();
 
   try {
     const backendResponse = await fetch(targetUrl, {
       method: request.method,
       headers,
-      body: hasBody ? await request.text() : undefined,
+      body: requestBody || undefined,
       cache: "no-store",
     });
 

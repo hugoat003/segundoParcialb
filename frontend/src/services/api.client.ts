@@ -8,7 +8,9 @@ const API_BASE_URL = "";
 const REFRESH_THRESHOLD_MS = 15_000;
 
 // Endpoints que no deben disparar el flujo de renovación
-const AUTH_ENDPOINTS = ["/api/auth/login", "/api/auth/refresh"];
+const NO_REFRESH_ENDPOINTS = ["/api/auth/login", "/api/auth/refresh", "/api/auth/logout"];
+// Endpoints que no llevan el access token (puede estar vencido)
+const NO_AUTH_HEADER_ENDPOINTS = ["/api/auth/login", "/api/auth/refresh"];
 
 class HttpError extends Error {
   constructor(message: string, public status: number) {
@@ -22,7 +24,7 @@ export class ApiClient {
 
   static async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponseDto<T>> {
     const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-    const isAuthEndpoint = AUTH_ENDPOINTS.some((p) => path.startsWith(p));
+    const isAuthEndpoint = NO_REFRESH_ENDPOINTS.some((p) => path.startsWith(p));
 
     if (!isAuthEndpoint && TokenStorage.getRefreshToken()) {
       const remaining = TokenStorage.getAccessTokenRemainingMs();
@@ -83,8 +85,7 @@ export class ApiClient {
       ...(options.headers as Record<string, string>),
     };
 
-    // Login y refresh no llevan el access token (puede estar vencido)
-    const token = AUTH_ENDPOINTS.some((p) => path.startsWith(p)) ? null : TokenStorage.getAccessToken();
+    const token = NO_AUTH_HEADER_ENDPOINTS.some((p) => path.startsWith(p)) ? null : TokenStorage.getAccessToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }

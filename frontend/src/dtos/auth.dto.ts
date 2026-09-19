@@ -18,6 +18,13 @@ export interface RefreshTokenRequestDto {
   refreshToken: string;
 }
 
+export type LogoutReason = "MANUAL" | "INACTIVITY";
+
+export interface LogoutRequestDto {
+  refreshToken: string | null;
+  reason: LogoutReason;
+}
+
 export interface UserResponseDto {
   id: number;
   username: string;

@@ -4,15 +4,28 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
+import { InactivityWarning } from "@/components/InactivityWarning";
+import { useInactivityTimer } from "@/hooks/useInactivityTimer";
 import { Loader2 } from "lucide-react";
+
+const INACTIVITY_TIMEOUT_MS = 3 * 60 * 1000;
+const INACTIVITY_WARNING_MS = 30 * 1000;
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, logout } = useAuth();
   const router = useRouter();
+
+  // Cierre automático tras 3 minutos sin actividad (aviso durante los últimos 30 segundos)
+  const { secondsLeft, resetActivity } = useInactivityTimer({
+    timeoutMs: INACTIVITY_TIMEOUT_MS,
+    warningMs: INACTIVITY_WARNING_MS,
+    enabled: isAuthenticated,
+    onTimeout: () => logout("INACTIVITY"),
+  });
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -42,6 +55,14 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {children}
       </div>
+
+      {secondsLeft !== null && (
+        <InactivityWarning
+          secondsLeft={secondsLeft}
+          onStayConnected={resetActivity}
+          onLogout={() => logout()}
+        />
+      )}
     </div>
   );
 }
